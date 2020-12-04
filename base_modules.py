@@ -2,6 +2,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+""" Modules for the Generator Network
+    All Modules are described in the AnimeGAN paper by Chen et al
+    https://github.com/TachibanaYoshino/AnimeGAN/blob/master/doc/Chen2020_Chapter_AnimeGAN.pdf
+"""
+
 class ConvBlock(nn.Module):
   """ Convolution Block made of convolution, instance norm, 
   and lrelu activation
@@ -23,16 +28,11 @@ class ConvBlock(nn.Module):
 
 class DepthwiseSeparableConv(nn.Module):
   """ depthwise separable convolution layer according to the following posts  
-  Honestly not too sure if I implemented the depth-wise convolution correctly
-  or not. Let's cross our fingers and hope I did.
   https://medium.com/@zurister/depth-wise-convolution-and-depth-wise-separable-convolution-37346565d4ec
   https://discuss.pytorch.org/t/how-to-modify-a-conv2d-to-depthwise-separable-convolution/15843
   """  
 
   def __init__(self, in_channels, out_channels, multiplier=4, kernel=3, stride=2):
-    """ @spec.requires: in_channels % groups == 0
-        *this is accounted for by code: in_channels*multiplier. No need be careful
-    """
     super(DepthwiseSeparableConv, self).__init__()
     self.depthwise = nn.Conv2d(in_channels, in_channels*multiplier, kernel_size=kernel, stride=stride, padding=1, groups=in_channels)
     self.pointwise = nn.Conv2d(in_channels*multiplier, out_channels, kernel_size=1, stride=1)    
