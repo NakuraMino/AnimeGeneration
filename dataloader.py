@@ -35,6 +35,7 @@ def image_to_tensor(image):
 
 class PhotoDataset(Dataset):
     """ dataloader for photo images only
+        no labels needed.
     """
 
     def __init__(self, base_dir, grayscale=False):
@@ -50,6 +51,10 @@ class PhotoDataset(Dataset):
         image_path = self.base_dir + self.all_images[idx]
         # print(image_path)
         image = cv2.imread(image_path, self.grayscale)
+        if self.grayscale == 0:
+            if len(image.shape) == 2:
+                image = np.expand_dims(image, axis=-1)
+            image = np.tile(image, (1,1,3))
         image = standardize_images(image)
         image = image_to_tensor(image)
         return image
@@ -59,7 +64,7 @@ def getPhotoDataloader(base_dir, batch_size=4, shuffle=True):
     return DataLoader(dataset=dataset, batch_size=batch_size, shuffle=shuffle)
 
 # path = './dataset/train_photo/'
-# ad = PhotoDataset(path)
+# ad = PhotoDataset(path, grayscale=False)
 # im = ad[1]
 # print(im.shape)
 
@@ -68,21 +73,30 @@ def getPhotoDataloader(base_dir, batch_size=4, shuffle=True):
 # print(batch.shape)
 
 class PhotoAndAnimeDataset(Dataset):
-    """ dataloader for photo and anime images
+    """ dataloader for photos, original anime, and smoothed anime images
+        where labels are original=1, smoothed=0, photos=0
     """
 
-    def __init__(self, photo_base_dir, anime_base_dir, grayscale=False):
-        # first half is anime images
-        self.anime_base_dir = anime_base_dir
-        self.anime_images = os.listdir(anime_base_dir)
+    def __init__(self, anime_original_dir, anime_smooth_dir, photo_base_dir, grayscale=False):
+        # first third is original anime images
+        self.anime_original_dir = anime_original_dir
+        self.anime_images = os.listdir(anime_original_dir)
         self.num_anime_photos = len(self.anime_images)
+        # print(self.num_anime_photos)
 
-        # second half is legit images
+        # second third is smoothed anime images
+        self.anime_smooth_dir = anime_smooth_dir
+        self.anime_smooth_images = os.listdir(anime_smooth_dir)
+        self.num_smooth_images = len(self.anime_smooth_images)
+        # print(self.num_smooth_images)
+
+        # final third is legit photos
         self.photo_base_dir = photo_base_dir
         self.photo_images = os.listdir(photo_base_dir)
 
         # append all together
         self.all_images = self.anime_images.copy()
+        self.all_images.extend(self.anime_smooth_images)
         self.all_images.extend(self.photo_images)
         self.len = len(self.all_images)
         self.grayscale = 0 if grayscale else 1
@@ -91,42 +105,45 @@ class PhotoAndAnimeDataset(Dataset):
         return self.len
 
     def __getitem__(self, idx):
-        """ 1s for anime photos and 0s for real photos
-            BUG: when using dataloader, the 1s and 0s are flipped, which 
-            makes no sense since it works when using getitem directly.
-            
-            TEMPORARY FIX: just roll with the bug mann. I return the opposite
-            values.
-
+        """ 1s for anime photos and 0s for real photos and smoothed photos
         """
+        # grab image path and label
         label = None
         if idx < self.num_anime_photos:
-            image_path = self.anime_base_dir + self.all_images[idx]
+            image_path = self.anime_original_dir + self.all_images[idx]
+            label = torch.ones(1)
+        elif idx < self.num_anime_photos + self.num_smooth_images:
+            image_path = self.anime_smooth_dir + self.all_images[idx]
             label = torch.zeros(1)
         else:
             image_path = self.photo_base_dir + self.all_images[idx]
-            label = torch.ones(1)
-
-        # print(image_path)
+            label = torch.zeros(1)
+        
         image = cv2.imread(image_path, self.grayscale)
+        # make 3 layers if its grayscaled
+        if self.grayscale == 0:
+            if len(image.shape) == 2:
+                image = np.expand_dims(image, axis=-1)
+            image = np.tile(image, (1,1,3))
         image = standardize_images(image)
         image = image_to_tensor(image)
         
         return image, label
         
-def getPhotoAndAnimeDataloader(photo_base_dir,anime_base_dir, batch_size=4, shuffle=True):
-    dataset = PhotoAndAnimeDataset(photo_base_dir, anime_base_dir)
+def getPhotoAndAnimeDataloader(anime_base_dir, smooth_dir, photo_base_dir, batch_size=4, shuffle=True):
+    dataset = PhotoAndAnimeDataset(anime_base_dir, smooth_dir, photo_base_dir)
     return DataLoader(dataset=dataset, batch_size=batch_size, shuffle=shuffle)
 
-# anime_path = './dataset/Shinkai/smooth/'
+# anime_path = './dataset/Shinkai/style/'
+# smooth_path = './dataset/Shinkai/smooth/'
 # photo_path = './dataset/train_photo/'
 
-# paad = PhotoAndAnimeDataset(photo_path, anime_path)
-# im, label = paad[2000]
+# paad = PhotoAndAnimeDataset(anime_path, smooth_path, photo_path, grayscale=True)
+# im, label = paad[1000]
 # print(im.shape)
 # print(label)
 
-# dl = getPhotoAndAnimeDataloader(anime_path, photo_path, batch_size=4)
+# dl = getPhotoAndAnimeDataloader(anime_path, smooth_path, photo_path, batch_size=4)
 # images, labels = next(iter(dl))
 # print(images.shape)
 # print(labels)
@@ -135,6 +152,7 @@ def getPhotoAndAnimeDataloader(photo_base_dir,anime_base_dir, batch_size=4, shuf
 class AnimeDataset(Dataset):
     """ dataloader for anime images
         Am I dumb? Is this not needed at all??
+        No labels needed.
     """
 
     def __init__(self, base_dir, grayscale=False):
@@ -150,11 +168,15 @@ class AnimeDataset(Dataset):
         image_path = self.base_dir + self.all_images[idx]
         # print(image_path)
         image = cv2.imread(image_path, self.grayscale)
+        if self.grayscale == 0:
+            if len(image.shape) == 2:
+                image = np.expand_dims(image, axis=-1)
+            image = np.tile(image, (1,1,3))
         image = standardize_images(image)
         image = image_to_tensor(image)
         return image
         
-def AnimeDataloader(base_dir, batch_size=4, shuffle=True):
+def getAnimeDataloader(base_dir, batch_size=4, shuffle=True):
     dataset = AnimeDataset(base_dir)
     return DataLoader(dataset=dataset, batch_size=batch_size, shuffle=shuffle)
 
