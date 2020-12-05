@@ -79,3 +79,9 @@ class Generator(nn.Module):
     x = self.residual_forward(x)
     x = self.decode(x)
     return x
+
+  def save_model(self, path):
+      torch.save(self.state_dict(), path)
+
+  def load_model(self, path):
+    self.load_state_dict(torch.load(path))

@@ -111,13 +111,13 @@ class PhotoAndAnimeDataset(Dataset):
         label = None
         if idx < self.num_anime_photos:
             image_path = self.anime_original_dir + self.all_images[idx]
-            label = torch.ones(1)
+            label = torch.ones((1,1,1))
         elif idx < self.num_anime_photos + self.num_smooth_images:
             image_path = self.anime_smooth_dir + self.all_images[idx]
-            label = torch.zeros(1)
+            label = torch.zeros((1,1,1))
         else:
             image_path = self.photo_base_dir + self.all_images[idx]
-            label = torch.zeros(1)
+            label = torch.zeros((1,1,1))
         
         image = cv2.imread(image_path, self.grayscale)
         # make 3 layers if its grayscaled
