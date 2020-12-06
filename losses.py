@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-import torch.models as models
+import torchvision.models as models
 
 def getVGGConv4_4():
     """ Returns: VGG19 model up until Conv4_4 Layer. 

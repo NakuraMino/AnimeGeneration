@@ -55,6 +55,8 @@ class PhotoDataset(Dataset):
             if len(image.shape) == 2:
                 image = np.expand_dims(image, axis=-1)
             image = np.tile(image, (1,1,3))
+        else:
+          image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image = standardize_images(image)
         image = image_to_tensor(image)
         return image
@@ -125,6 +127,8 @@ class PhotoAndAnimeDataset(Dataset):
             if len(image.shape) == 2:
                 image = np.expand_dims(image, axis=-1)
             image = np.tile(image, (1,1,3))
+        else:
+          image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image = standardize_images(image)
         image = image_to_tensor(image)
         
@@ -172,12 +176,14 @@ class AnimeDataset(Dataset):
             if len(image.shape) == 2:
                 image = np.expand_dims(image, axis=-1)
             image = np.tile(image, (1,1,3))
+        else:
+          image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image = standardize_images(image)
         image = image_to_tensor(image)
         return image
         
-def getAnimeDataloader(base_dir, batch_size=4, shuffle=True):
-    dataset = AnimeDataset(base_dir)
+def getAnimeDataloader(base_dir, batch_size=4, grayscale=False, shuffle=True):
+    dataset = AnimeDataset(base_dir, grayscale=grayscale)
     return DataLoader(dataset=dataset, batch_size=batch_size, shuffle=shuffle)
 
 # path = './dataset/Shinkai/smooth/'
