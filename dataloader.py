@@ -98,6 +98,10 @@ class PhotoAndAnimeDataset(Dataset):
 
         # append all together
         self.all_images = self.anime_images.copy()
+        self.all_images.extend(self.anime_images)
+        self.all_images.extend(self.anime_images)
+        self.all_images.extend(self.anime_images)
+        self.all_images.extend(self.anime_images)
         self.all_images.extend(self.anime_smooth_images)
         self.all_images.extend(self.photo_images)
         self.len = len(self.all_images)
