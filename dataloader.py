@@ -79,17 +79,17 @@ class PhotoAndAnimeDataset(Dataset):
         where labels are original=1, smoothed=0, photos=0
     """
 
-    def __init__(self, anime_original_dir, anime_smooth_dir, photo_base_dir, grayscale=False):
+    def __init__(self, anime_original_dir, anime_smooth_dir, photo_base_dir, grayscale=False, ratio=4):
         # first third is original anime images
         self.anime_original_dir = anime_original_dir
         self.anime_images = os.listdir(anime_original_dir)
-        self.num_anime_photos = len(self.anime_images)
+        self.num_anime_photos = len(self.anime_images) * 2 * ratio # hardcoded is bad
         # print(self.num_anime_photos)
 
         # second third is smoothed anime images
         self.anime_smooth_dir = anime_smooth_dir
         self.anime_smooth_images = os.listdir(anime_smooth_dir)
-        self.num_smooth_images = len(self.anime_smooth_images)
+        self.num_smooth_images = len(self.anime_smooth_images) * ratio
         # print(self.num_smooth_images)
 
         # final third is legit photos
@@ -98,11 +98,13 @@ class PhotoAndAnimeDataset(Dataset):
 
         # append all together
         self.all_images = self.anime_images.copy()
-        self.all_images.extend(self.anime_images)
-        self.all_images.extend(self.anime_images)
-        self.all_images.extend(self.anime_images)
-        self.all_images.extend(self.anime_images)
-        self.all_images.extend(self.anime_smooth_images)
+        
+        for i in range((2 * ratio) - 1):
+            self.all_images.extend(self.anime_images)
+        
+        for i in range(ratio):
+            self.all_images.extend(self.anime_smooth_images)
+        
         self.all_images.extend(self.photo_images)
         self.len = len(self.all_images)
         self.grayscale = 0 if grayscale else 1
@@ -124,7 +126,7 @@ class PhotoAndAnimeDataset(Dataset):
         else:
             image_path = self.photo_base_dir + self.all_images[idx]
             label = torch.zeros((1,1,1))
-        
+        # print(image_path)
         image = cv2.imread(image_path, self.grayscale)
         # make 3 layers if its grayscaled
         if self.grayscale == 0:
@@ -146,8 +148,8 @@ def getPhotoAndAnimeDataloader(anime_base_dir, smooth_dir, photo_base_dir, batch
 # smooth_path = './dataset/Shinkai/smooth/'
 # photo_path = './dataset/train_photo/'
 
-# paad = PhotoAndAnimeDataset(anime_path, smooth_path, photo_path, grayscale=True)
-# im, label = paad[1000]
+# paad = PhotoAndAnimeDataset(anime_path, smooth_path, photo_path, grayscale=False)
+# im, label = paad[8249]
 # print(im.shape)
 # print(label)
 

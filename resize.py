@@ -10,7 +10,7 @@ def resize_images(path, save_path):
             cv2.imwrite(save_path + '/' + filename, resized)
 
 
-base_path = 'C:\\Users\\Andressa\\UW\\AnimeGeneration\\dataset\\'
+base_path = 'C:\\Users\\minon\\Desktop\\AnimeGeneration\\dataset\\'
 
 train_path = base_path + 'train_photo'
 save_train_path = base_path + 'train_photo_small'

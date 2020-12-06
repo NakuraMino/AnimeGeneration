@@ -1,7 +1,7 @@
 import pickle
 import torch 
 import torch.nn as nn 
-import matplotlib.plot as plt
+import matplotlib.pyplot as plt
 
 def plot_images(images, title, fig_index):  
     scene_len, H, W, C = images.shape
@@ -37,6 +37,11 @@ def readListFromPickle(file_name):
   open_file = open(file_name, "rb")
   loaded_list = pickle.load(open_file)
   return loaded_list
+
+
+def saveListToPickle(path, loss_list):
+  with open(path, 'wb') as fp:
+    pickle.dump(loss_list, fp)
 
 
 def listToAvg(a_list, interval=100):
