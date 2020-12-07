@@ -54,7 +54,7 @@ class GrayscaleStyleLoss(nn.Module):
     """
     gram_generated = GrayscaleStyleLoss.gram_matrix(self.VGG(generated))
     gram_anime_gray = GrayscaleStyleLoss.gram_matrix(self.VGG(anime_gray))
-    return self.L1Loss(gram_generated, gram_anime_gray)
+    return self.L1Loss(gram_generated, gram_anime_gray) / generated.numel()
 
 class ColorReconLoss(nn.Module):
   """ Loss used to combat the loss of color. Ensure generated images 
