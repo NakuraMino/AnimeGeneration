@@ -79,6 +79,16 @@ class ColorReconLoss(nn.Module):
     output[:, 1, :, :] = input[:, 0, :, :] * -37.797 + input[:, 1, :, :] * 74.203 + input[:, 2, :, :] * 112. + 128.
     output[:, 2, :, :] = input[:, 0, :, :] * 112.0 + input[:, 1, :, :] * 93.786 + input[:, 2, :, :] * 18.214 + 128.
     return output
+
+  @staticmethod
+  def unstandardizeImage(images):
+    _mean=[0.485, 0.456, 0.406]; _std=[0.229, 0.224, 0.225]
+    output = torch.zeros(images.shape)
+    for i in range(3):
+      output[:,i,:,:] = images[:,i,:,:] * _std[i]
+      output[:,i,:,:] = images[:,i,:,:] + _mean[i]
+    output *= 255.0
+    return output
   
   def forward(self, generated, real_photos):
     """ @param generated: batch of generated anime images in RGB format,
@@ -86,9 +96,17 @@ class ColorReconLoss(nn.Module):
         @param real_photos: batch of real-life photos used to generate generated 
                             images, of shape [N x 3 x H x W]
     """
+    # scale to rgb values
+    generated = ColorReconLoss.unstandardizeImage(generated)
+    real_photos = ColorReconLoss.unstandardizeImage(real_photos)
+    
+    # convert to YUV format
     generated_yuv = ColorReconLoss.rgb_to_ycbcr(generated)
     real_photos_yuv = ColorReconLoss.rgb_to_ycbcr(real_photos)
+    
+    # calculate loss for each channel
     y_loss = self.L1Loss(generated_yuv[:,0,:,:], real_photos_yuv[:,0,:,:])
     u_loss = self.HuberLoss(generated_yuv[:,1,:,:], real_photos_yuv[:,1,:,:])
     v_loss = self.HuberLoss(generated_yuv[:,2,:,:], real_photos_yuv[:,2,:,:])
-    return y_loss + u_loss + v_loss
+    
+    return (y_loss + u_loss + v_loss) / generated.numel()
