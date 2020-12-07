@@ -2,6 +2,7 @@ import pickle
 import torch 
 import torch.nn as nn 
 import matplotlib.pyplot as plt
+import numpy as np
 
 def plot_images(images, title, fig_index):  
     scene_len, H, W, C = images.shape
@@ -29,7 +30,7 @@ def torch_to_numpy(torch_tensor, is_standardized_image = False):
             np_tensor[...,i] *= _std[i]
             np_tensor[...,i] += _mean[i]
         np_tensor *= 255
-            
+    np_tensor = np.clip(np_tensor, 0, 255)
     return np_tensor
 
 
