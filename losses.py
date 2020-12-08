@@ -24,6 +24,7 @@ class ContentLoss(nn.Module):
     photo = self.VGG(photo)
     return self.L1Loss(generated, photo)
 
+
 class GrayscaleStyleLoss(nn.Module):
   """ grayscale style loss makes the generated images have
       the clear anime style on the texture and lines"
@@ -42,19 +43,20 @@ class GrayscaleStyleLoss(nn.Module):
     """
     N,C,H,W = A.shape
     A_unrolled = A.reshape((N,C,H*W))
-    A_unrolled_transpose = A.reshape((N,H*W,C))
+    A_unrolled_transpose = torch.transpose(A_unrolled, 1, 2)
     gram = torch.bmm(A_unrolled, A_unrolled_transpose)
     return gram
 
   def forward(self, generated, anime_gray):
     """ @param generated: images generated from generator, G(photo),
                           of shape [N x C x H x W]
-        @param anime_gray: grayscale smoothed anime images, of shape
+        @param anime_gray: grayscale anime images, of shape
                            [N x C x H x W]
     """
     gram_generated = GrayscaleStyleLoss.gram_matrix(self.VGG(generated))
     gram_anime_gray = GrayscaleStyleLoss.gram_matrix(self.VGG(anime_gray))
     return self.L1Loss(gram_generated, gram_anime_gray) / generated.numel()
+
 
 class ColorReconLoss(nn.Module):
   """ Loss used to combat the loss of color. Ensure generated images 
@@ -75,18 +77,23 @@ class ColorReconLoss(nn.Module):
         formula is from: https://en.wikipedia.org/wiki/YCbCr
     """
     output = torch.zeros(input.shape)
-    output[:, 0, :, :] = input[:, 0, :, :] * 65.481 + input[:, 1, :, :] * 128.553 + input[:, 2, :, :] * 24.966 + 16.
-    output[:, 1, :, :] = input[:, 0, :, :] * -37.797 + input[:, 1, :, :] * 74.203 + input[:, 2, :, :] * 112. + 128.
-    output[:, 2, :, :] = input[:, 0, :, :] * 112.0 + input[:, 1, :, :] * 93.786 + input[:, 2, :, :] * 18.214 + 128.
+    output[:, 0, :, :] += input[:, 0, :, :] * 65.481 + input[:, 1, :, :] * 128.553 + input[:, 2, :, :] * 24.966 + 16.
+    output[:, 1, :, :] += input[:, 0, :, :] * -37.797 + input[:, 1, :, :] * 74.203 + input[:, 2, :, :] * 112. + 128.
+    output[:, 2, :, :] += input[:, 0, :, :] * 112.0 + input[:, 1, :, :] * 93.786 + input[:, 2, :, :] * 18.214 + 128.
     return output
 
   @staticmethod
   def unstandardizeImage(images):
+    """ @param images: [N x C x H x W] tensor representing standardized images
+        @returns: [N x C x H x W] tensor representing RGB images (unclipped)
+
+        Undoes ImageNet standardization
+    """
     _mean=[0.485, 0.456, 0.406]; _std=[0.229, 0.224, 0.225]
     output = torch.zeros(images.shape)
     for i in range(3):
-      output[:,i,:,:] = images[:,i,:,:] * _std[i]
-      output[:,i,:,:] = images[:,i,:,:] + _mean[i]
+      output[:,i,:,:] += images[:,i,:,:] * _std[i]
+      output[:,i,:,:] += images[:,i,:,:] + _mean[i]
     output *= 255.0
     return output
   

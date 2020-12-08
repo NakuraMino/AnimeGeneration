@@ -49,7 +49,6 @@ class PhotoDataset(Dataset):
 
     def __getitem__(self, idx):
         image_path = self.base_dir + self.all_images[idx]
-        # print(image_path)
         image = cv2.imread(image_path, self.grayscale)
         if self.grayscale == 0:
             if len(image.shape) == 2:
@@ -83,8 +82,7 @@ class PhotoAndAnimeDataset(Dataset):
         # first third is original anime images
         self.anime_original_dir = anime_original_dir
         self.anime_images = os.listdir(anime_original_dir)
-        self.num_anime_photos = len(self.anime_images) * 2 * ratio # hardcoded is bad
-        # print(self.num_anime_photos)
+        self.num_anime_photos = len(self.anime_images) * 2 * ratio
 
         # second third is smoothed anime images
         self.anime_smooth_dir = anime_smooth_dir
@@ -179,9 +177,11 @@ class AnimeDataset(Dataset):
         # print(image_path)
         image = cv2.imread(image_path, self.grayscale)
         if self.grayscale == 0:
-            if len(image.shape) == 2:
-                image = np.expand_dims(image, axis=-1)
-            image = np.tile(image, (1,1,3))
+            # if len(image.shape) == 2:
+            #     image = np.expand_dims(image, axis=-1)
+          image = np.stack([image,image,image], axis=-1)
+        #   print(image[:,:,0] - image[:,:,1])
+        #   print(image.shape)
         else:
           image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image = standardize_images(image)
@@ -193,9 +193,10 @@ def getAnimeDataloader(base_dir, batch_size=4, grayscale=False, shuffle=True):
     return DataLoader(dataset=dataset, batch_size=batch_size, shuffle=shuffle)
 
 # path = './dataset/Shinkai/smooth/'
-# ad = AnimeDataset(path)
+# ad = AnimeDataset(path, grayscale=True)
 # im = ad[1]
 # print(im.shape)
+# print((im[0,:,:] - im[1,:,:]))
 
 # dl = getAnimeDataloader(path)
 # batch = next(iter(dl))
