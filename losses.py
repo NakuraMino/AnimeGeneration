@@ -76,7 +76,7 @@ class ColorReconLoss(nn.Module):
         https://discuss.pytorch.org/t/how-to-change-a-batch-rgb-images-to-ycbcr-images-during-training/3799/2
         formula is from: https://en.wikipedia.org/wiki/YCbCr
     """
-    output = torch.zeros(input.shape)
+    output = torch.zeros(input.shape).cuda()
     output[:, 0, :, :] += input[:, 0, :, :] * 65.481 + input[:, 1, :, :] * 128.553 + input[:, 2, :, :] * 24.966 + 16.
     output[:, 1, :, :] += input[:, 0, :, :] * -37.797 + input[:, 1, :, :] * 74.203 + input[:, 2, :, :] * 112. + 128.
     output[:, 2, :, :] += input[:, 0, :, :] * 112.0 + input[:, 1, :, :] * 93.786 + input[:, 2, :, :] * 18.214 + 128.
@@ -90,7 +90,7 @@ class ColorReconLoss(nn.Module):
         Undoes ImageNet standardization
     """
     _mean=[0.485, 0.456, 0.406]; _std=[0.229, 0.224, 0.225]
-    output = torch.zeros(images.shape)
+    output = torch.zeros(images.shape).cuda()
     for i in range(3):
       output[:,i,:,:] += images[:,i,:,:] * _std[i]
       output[:,i,:,:] += images[:,i,:,:] + _mean[i]
