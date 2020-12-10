@@ -32,7 +32,7 @@ class Generator(nn.Module):
     self.conv7 = ConvBlock(64,64)
     self.conv8 = ConvBlock(64,64)
     self.final_conv_layer = nn.Conv2d(64,3,kernel_size=1,stride=1, padding=1)
-    self.tanh_activation = nn.Tanh()
+    self.sigmoid_activation = nn.Sigmoid()
   
   def encode(self, x):
     """ @param x: x is [N x C x H x W] images
@@ -59,7 +59,7 @@ class Generator(nn.Module):
     x = self.conv7(x)
     x = self.conv8(x)
     x = self.final_conv_layer(x)
-    x = self.tanh_activation(x)
+    x = self.sigmoid_activation(x)
     return x
     
   def residual_forward(self, x):
