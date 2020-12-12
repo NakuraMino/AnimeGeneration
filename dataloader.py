@@ -29,6 +29,11 @@ def image_to_tensor(image):
         tensor = torch.from_numpy(image).permute(2,0,1).float()
     return tensor
 
+def worker_init_fn(worker_id):
+    """ Use this to bypass issue with PyTorch dataloaders using deterministic RNG for Numpy
+        https://github.com/pytorch/pytorch/issues/5059
+    """
+    np.random.seed(np.random.get_state()[1][0] + worker_id)
 
 """ DATASETS AND DATALOADERS
 """
@@ -60,9 +65,9 @@ class PhotoDataset(Dataset):
         image = image_to_tensor(image)
         return image
         
-def getPhotoDataloader(base_dir, batch_size=4, shuffle=True):
+def getPhotoDataloader(base_dir, batch_size=4, num_workers=4, shuffle=True):
     dataset = PhotoDataset(base_dir)
-    return DataLoader(dataset=dataset, batch_size=batch_size, shuffle=shuffle)
+    return DataLoader(dataset=dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, worker_init_fn=worker_init_fn)
 
 # path = './dataset/train_photo/'
 # ad = PhotoDataset(path, grayscale=False)
@@ -138,9 +143,9 @@ class PhotoAndAnimeDataset(Dataset):
         
         return image, label
         
-def getPhotoAndAnimeDataloader(anime_base_dir, smooth_dir, photo_base_dir, batch_size=4, shuffle=True):
+def getPhotoAndAnimeDataloader(anime_base_dir, smooth_dir, photo_base_dir, batch_size=4, num_workers=4, shuffle=True):
     dataset = PhotoAndAnimeDataset(anime_base_dir, smooth_dir, photo_base_dir)
-    return DataLoader(dataset=dataset, batch_size=batch_size, shuffle=shuffle)
+    return DataLoader(dataset=dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, worker_init_fn=worker_init_fn)
 
 # anime_path = './dataset/Shinkai/style/'
 # smooth_path = './dataset/Shinkai/smooth/'
@@ -188,9 +193,9 @@ class AnimeDataset(Dataset):
         image = image_to_tensor(image)
         return image
         
-def getAnimeDataloader(base_dir, batch_size=4, grayscale=False, shuffle=True):
+def getAnimeDataloader(base_dir, batch_size=4, grayscale=False, num_workers=4, shuffle=True):
     dataset = AnimeDataset(base_dir, grayscale=grayscale)
-    return DataLoader(dataset=dataset, batch_size=batch_size, shuffle=shuffle)
+    return DataLoader(dataset=dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, worker_init_fn=worker_init_fn)
 
 # path = './dataset/Shinkai/smooth/'
 # ad = AnimeDataset(path, grayscale=True)
