@@ -83,17 +83,22 @@ class PhotoAndAnimeDataset(Dataset):
         where labels are original=1, smoothed=0, photos=0
     """
 
-    def __init__(self, anime_original_dir, anime_smooth_dir, photo_base_dir, grayscale=False, ratio=4):
-        # first third is original anime images
+    def __init__(self, anime_original_dir, anime_smooth_dir, photo_base_dir, ratio=4):
+        # first fourth is original anime images
         self.anime_original_dir = anime_original_dir
         self.anime_images = os.listdir(anime_original_dir)
         self.num_anime_photos = len(self.anime_images) * 2 * ratio
 
-        # second third is smoothed anime images
+        # second fourth is smoothed gray anime images
         self.anime_smooth_dir = anime_smooth_dir
         self.anime_smooth_images = os.listdir(anime_smooth_dir)
-        self.num_smooth_images = len(self.anime_smooth_images) * ratio
+        self.num_smooth_images = len(self.anime_smooth_images) * (ratio - 1)
         # print(self.num_smooth_images)
+
+        # third fourth is gray anime images
+        self.anime_gray_dir = anime_original_dir
+        self.anime_gray_images = self.anime_images.copy()
+        self.num_anime_gray_images = len(self.anime_images) 
 
         # final third is legit photos
         self.photo_base_dir = photo_base_dir
@@ -110,7 +115,6 @@ class PhotoAndAnimeDataset(Dataset):
         
         self.all_images.extend(self.photo_images)
         self.len = len(self.all_images)
-        self.grayscale = 0 if grayscale else 1
 
     def __len__(self):
         return self.len
@@ -120,24 +124,32 @@ class PhotoAndAnimeDataset(Dataset):
         """
         # grab image path and label
         label = None
+        image = None
         if idx < self.num_anime_photos:
             image_path = self.anime_original_dir + self.all_images[idx]
+            image = cv2.imread(image_path, 1) # colored
             label = torch.ones((1,1,1))
         elif idx < self.num_anime_photos + self.num_smooth_images:
             image_path = self.anime_smooth_dir + self.all_images[idx]
             label = torch.zeros((1,1,1))
+            image = cv2.imread(image_path, 0) # gray
+        elif idx < self.num_anime_photos + self.num_smooth_images + self.num_anime_gray_images:
+            image_path = self.anime_original_dir + self.all_images[idx]
+            label = torch.zeros((1,1,1))
+            image = cv2.imread(image_path, 0) # gray    
         else:
             image_path = self.photo_base_dir + self.all_images[idx]
             label = torch.zeros((1,1,1))
+            image = cv2.imread(image_path, 1) # colored
         # print(image_path)
-        image = cv2.imread(image_path, self.grayscale)
+        
         # make 3 layers if its grayscaled
-        if self.grayscale == 0:
-            if len(image.shape) == 2:
-                image = np.expand_dims(image, axis=-1)
+        if len(image.shape) == 2:
+            image = np.expand_dims(image, axis=-1)
             image = np.tile(image, (1,1,3))
         else:
           image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
         image = standardize_images(image)
         image = image_to_tensor(image)
         
@@ -151,8 +163,8 @@ def getPhotoAndAnimeDataloader(anime_base_dir, smooth_dir, photo_base_dir, batch
 # smooth_path = './dataset/Shinkai/smooth/'
 # photo_path = './dataset/train_photo/'
 
-# paad = PhotoAndAnimeDataset(anime_path, smooth_path, photo_path, grayscale=False)
-# im, label = paad[8249]
+# paad = PhotoAndAnimeDataset(anime_path, smooth_path, photo_path)
+# im, label = paad[19800]
 # print(im.shape)
 # print(label)
 
