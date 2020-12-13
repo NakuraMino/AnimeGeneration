@@ -28,10 +28,10 @@ class Generator(nn.Module):
     self.up_conv1 = UpConv(256, 128)
     self.dsconv2 = DepthwiseSeparableConv(128,128,stride=1)
     self.conv6 = ConvBlock(128,128)
-    self.up_conv2 = UpConv(128, 64)
-    self.conv7 = ConvBlock(64,64)
+    self.up_conv2 = UpConv(128, 128)
+    self.conv7 = ConvBlock(128,64)
     self.conv8 = ConvBlock(64,64)
-    self.final_conv_layer = nn.Conv2d(64,3,kernel_size=1,stride=1, padding=1)
+    self.final_conv_layer = nn.Conv2d(64,3,kernel_size=1,stride=1)
     self.sigmoid_activation = nn.Sigmoid()
   
   def encode(self, x):
