@@ -160,9 +160,46 @@ How did you evaluate your approach? How well did you do? What are you comparing 
 
 You may want some qualitative results and quantitative results. Example images/text/whatever are good. Charts are also good. Maybe loss curves or AUC charts. Whatever makes sense for your evaluation.
 
-## Discussion
+## Discussion / Learnings
 
-You can talk about your results and the stuff you've learned here if you want. Or discuss other things. Really whatever you want, it's your project.
+Here, we will try to discuss why our GAN could not fully replicate the results of AnimeGAN and CartoonGAN, and also 
+detail the various learnings we have made over the course of this project. 
+
+We came across various difficulties when training our GAN network. Crucially, we did not have the ability to reliably train 
+our GAN, as Google Colab would frequeuntly time out. Thus, our training schedule suffered, and we would often have to rerun
+parts of our training regime. Furthermore, we saw several instances when our GAN would fail due to mode collapse. In addition, 
+we also ran into the problem of vanishing gradients because our discriminator will learn to predict the correct output label 
+fairly quickly. We also believe our GAN trained poorly because our dataset is fairly small. 
+
+Through this project, we brainstormed a variety of different alternatives that we believe may work, given that we have more time. 
+One option would be to implement a U-net-like structure for our generator. This would provide the added benefit of allow the
+generator to optimize the content loss more quickly, and allows the output to retain the general structure of the input image. 
+We also believe this may be a promising direction because U-net is able to work well on small datasets, which is a problem we 
+are currently facing. 
+
+Another option would be to implement an autoencoder without using the adversarial loss. The adversary in the GAN training 
+makes it extremely hard to stablize training. We saw our loss graphs fluctuate wildly due to our discriminator learning different 
+boundaries for what it considers anime-like photos and what it does not consider anime-like photos. 
+
+One last idea we have is to pretrain the generator on the existing anime photos first. The GAN papers we read pretrain on the input 
+photos to stablize training, but it would be interesting to see if using anime photos in the pretraining process is promising as well. 
+Specifically, we hope that this will allow for the decoder portion of the network to learn to decode the latent vectors more easily.
+
+Through this exercise, we also gained a wide variety of knowledge and intuition we can apply to future projects. One 
+important finding we learned was that our GAN would train poorly if our unweighted loss values were not in similar range 
+of values. Specifically, our implemented Grayscale Style Loss started off with a value that was around 10,000 times greater 
+than the values of our other losses. Since this would force the GAN to heavily optimize the Grayscale Style Loss a lot more 
+heavily than our other losses, we scaled down our loss by dividing by a constant, which allowed us to tune the hyperparameters
+more easily and use a smaller range of values to train our GAN on. Another learning we made was that our GANs would train more 
+stably if we standardize our images to be within the values 0 and 1, since trainig a GAN to produce RGB values would be highly
+unstable and would be more difficult to train. 
+
+A third learning we gained from this project is to set up as much observing infrastructure as possible while training. It is 
+very frustrating to try and train a GAN or a neural network without any visual feedback on how well our GAN is doing. Therefore, 
+we found it very helpful to create utility functions that would help reconstruct the outputted images and give us feedback on 
+how our training was working.
+
+Overall, through this project, we learned a lot about GANs, their instability, and the difficulty of replicating papers. Coding everything mostly from scratch is very error prone, and we found multiple bugs in our implementation throughout the process. This was quite frustrating, as the discovery of a bug would mean hours of training gone to waste. Additionally, since the paper's implementation details were quite vague, we were left unsure whether our training regime and loss calculations were viable and correct. Coming in, we thought we could use the parameters the paper provided, such as the learning rates, weights for each losses (since we had four types of losses), etc. However, after realizing that our implementation might differ from theirs, we had to experiment with our own parameters and tune them based on our outputs. Another difficulty was the lack of computing resources and time we had. AnimeGAN and CartoonGAN both trained their network for 200 epochs in order to produce a model that produced high quality anime images. Since an epoch took sometimes hours for us, we had to quickly make decisions about our model's performance based off only a few epochs and decide whether to continue training or to change our architecture or parameters. Until now, it is difficult to say whether our model's subpar generated images stems from implementation or from lack of training.
 
 
 ## Useful Links
