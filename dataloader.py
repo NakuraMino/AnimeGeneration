@@ -128,18 +128,18 @@ class PhotoAndAnimeDataset(Dataset):
         if idx < self.num_anime_photos:
             image_path = self.anime_original_dir + self.all_images[idx]
             image = cv2.imread(image_path, 1) # colored
-            label = torch.ones((1,1,1))
+            label = torch.ones((1,64,64))
         elif idx < self.num_anime_photos + self.num_smooth_images:
             image_path = self.anime_smooth_dir + self.all_images[idx]
-            label = torch.zeros((1,1,1))
+            label = torch.zeros((1,64,64))
             image = cv2.imread(image_path, 0) # gray
         elif idx < self.num_anime_photos + self.num_smooth_images + self.num_anime_gray_images:
             image_path = self.anime_original_dir + self.all_images[idx]
-            label = torch.zeros((1,1,1))
+            label = torch.zeros((1,64,64))
             image = cv2.imread(image_path, 0) # gray    
         else:
             image_path = self.photo_base_dir + self.all_images[idx]
-            label = torch.zeros((1,1,1))
+            label = torch.zeros((1,64,64))
             image = cv2.imread(image_path, 1) # colored
         # print(image_path)
         
