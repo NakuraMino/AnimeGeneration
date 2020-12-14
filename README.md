@@ -65,22 +65,90 @@ How did you decide to solve the problem? What network architecture did you use? 
 Our project was heavily based off of [AnimeGAN](https://github.com/TachibanaYoshino/AnimeGAN), which is currently the state-of-the-art anime/cartoon generator (they recently released an AnimeGANv2, but did not have extensive documentation on it). We wished to reproduce their high quality results, so our implementation follows theirs for the most part. Our model is a GAN and thus consists of two convolutional neural networks: a generator to transform real-life photos to anime-like images and a discriminator to determine whether the images are real anime images or if they were produced by the generator. The architecture of these two neural networks in AnimeGAN is as follows:
 ![Generator Discriminator Architecture](GenDiscArchitecture.jpg)
 
+
 The generator consists of small modules, such as convolution blocks (Conv-Block), depthwise separable convolutions (DSConv), inverted residual blocks (IRB), upsampling (Up-Conv), and downsampling (Down-Conv). The architecture of these modules can be found below:
 ![Modules](Modules.jpg)
 
-Throughout the process, we experimented with a variety of 
+### Dataset
+The dataset we used originated from AnimeGAN. It consists of 6656 real-life photos and 1650 Shinkai-style anime images from the movie Your Name (there are other anime style images, but we focused on Shinkai). Using the anime images, we created new sets of images, such as grayscale anime images, and grayscale anime images with smoothed edges. These new images were created in order for the GAN to learn that smoothed edges should not be considered anime style. The losses below describe more in depth how these images are used.
+
+### Loss Functions
+Both the generator and discriminator have loss functions that optimize the generator to produce images that are anime-like in style. The generator adopts four different losses: content loss, grayscale style loss, color reconstruction loss, and adversarial loss. To calculate some of the losses, we use a pre-trained VGG19 as a perceptual network. In particular, we use the Conv4-4 layer of VGG19 to extract high-level semantic features of the images. For simplicity, we will refer to the input real-life photo as _p_, its generated image as _G(p)_, and the output of VGG19 conv4-4 layer as _VGG()_.
+
+
+The content loss aims to have the generated image retain the content of the input image. To calculate this, we take the L1 loss of _VGG(p)_ and _VGG(G(p))_.
+Next, we have a grayscale style loss that focuses on transferring the texture of anime images onto the real-life photos. It is necessary to use grayscale images in order to eliminate color interference and to emphasize the edges and texture instead. To calculate the grayscale loss, we take the L1 loss of the Gram matrices of _VGG(p)_ and _VGG(G(p))_. 
+To counteract the grayscale style loss and ensure that the generated images retain the colors of the original photos, we also have  color reconstuction loss. To calculate this loss, we convert the RGB images to YUB format and calculate the losses for each channel and add them up. Specifically, we use an L1 loss for the Y channel and Huber Loss for the U and V channels.
+Finally, we have an adversarial loss to stabilize training of the network as well as to generate high quality images. The least squares loss funciton in LSGAN is used to calculate this loss.
+We use these four losses, each one scaled by a unique weight, to calculate an overall loss for the generator.
+
+
+The discriminator loss is an adversarial loss based off the descriminator's decision on four different types of images: anime images, real-life photos, grayscale anime images, and grayscale smooth-edged anime images. The discriminator should classify only the anime images as anime and the other three types as non-anime images. The grayscale smooth-edged anime images is for an edge-promoting adversarial loss to optimize the generator to produce images with clear lines, as this is a distinct style in anime. The grayscale anime images is for a grayscale adversarial loss to prevent the generated images from being grayscale. The sum of these four losses multiplied by the adversarial weight (same weight as the generator's adversarial loss) is used as the discriminator's loss.
+For detailed equations of each loss, more information can be found in the AnimeGAN paper.
+
+
+Throughout the process, we experimented with a variety of different implementations, which is described in the following sections. 
 
 ### Initial Implementation
-In our initial implementation, we followed the AnimeGAN architecture as closely as possible. One thing we did change was downsize the generator network by only using 4 inverted residual blocks instead of 8 due to our limited computing power and time. 
+In our initial implementation, we followed the AnimeGAN architecture as closely as possible. One thing we did change was downsize the generator network by only using 4 inverted residual blocks instead of 8 due to our limited computing power and time. All other aspects of the implementation were consistent with AnimeGAN. The training regime in the AnimeGAN paper was very vague, so we used our knowledge about GANs to create a training process that seemed reasonable. This consisted of first pre-training our generator for 10 epochs on only the content loss so that the GAN would converge faster. After pre-training, we went on to train both the generator in a 5:1 ratio per epoch, meaning we trained the generator 5 times per epoch and discriminator only once. We chose to do so in order to avoid vanishing gradients, since the discriminator might learn its task of fake and true anime photos very early on. After training the network for a few epochs, we noticed that the images produced did not resemble the original input photo at all and were blob-like in nature. Since we weren't sure if our network would be able to learn anything with our current architecture and losses, we decided to make changes to our network which is described in the next few sections.   
 
-### Discriminator Changes: dropout layers and train discriminator
+### Discriminator Changes
+According to the AnimeGAN paper, the discriminator was trained only using MSELoss, where anime-like photos had label=1, real-life
+photos had label=0, grayscaled, smooth anime photos had a label=0, and grayscaled anime photos had a label=0. However, we could
+not replicate the results of AnimeGAN using this discriminator loss function. We hypothesize several a couple of reasons for this: 
+
+1. Our discriminator is converging quickly and may be trained too frequently in comparison to the generator, resulting in
+vanishing gradients. 
+2. We rely too much on a small dataset. The AnimeGAN paper uses merely 1650 anime images and 6656 real-life photos. We suspect
+that this is an incredibly tiny amount of data to train our network on, and our network will not be able to learn well or
+generalize well. 
+
+An obvious solution to combat (1) would be to simply decrease the number of times our discriminator is trained in contrast to the
+generator. However, this is an unrealistic solution, as we do not have the computational resources nor the time to train our
+network for such a long time. Thus, we decided to artifically hinder the discriminator training process by introducing dropout 
+layers into our discriminator. This gives us the added benefit of forcefully shrinking our discriminator to become smaller, and 
+also ensures that the discriminator is less likely to overfit, even on a small dataset. 
+
+In order to solve (2), we decided to include another loss for the discriminator loss that was not introduced in the AnimeGAN 
+paper. Specifically, we hypothesized that our discriminator cannot draw a proper boundary between real-life images and anime 
+images because our dataset is too small. During our training regime, we saw that our GAN would learn to classify between anime 
+images and real-life images fairly well (MAYBE REPLACE THIS WITH SOME METRICS OR LOSS GRAPHS) after 6 or 7 epochs. However, the 
+discriminator does not draw a complete boundary between an anime photo and a real-life photo. This allows the generator to fool 
+the discriminator by simplying producing altered photos of real-life photos that do not properly generate anime images. Therefore, 
+to combat this issue, we have our discriminator infrequently learn to discriminate against generated photos. Specifically, we take 
+the MSELoss(generator(images), 0) during the earlier stages of training, which helps the generator from producing images that do 
+not look anime-like.
 
 ### Experimenting without discriminator
+GANs are extremely difficult to train. Through our experiments, we also saw that our GAN was not stable and did not generate ideal 
+anime-like outputs. Thus, to circumvent this problem, we experimented with various other architectures that may be able to 
+generate anime-like images. More specifically, we decided to repurpose our generator as an autoencoder-like architecture. By 
+removing the discriminator, we hoped to treat the autoencoder as a network that would map an image to a lower dimensional feature 
+vector, and then translate the feature vector into an anime-like image. 
+
+However, our experiments were not successful. Specifically, we saw that the Grayscale Style Loss used in the AnimeGAN paper did 
+not influence our autoencoder to produce anime-like images. We believe this may be because the Grayscale Style Loss is only used 
+to enhance the edges and give similar texture to anime images. However, since there is no adversarial loss to help the generator 
+learn to produce specific anime-like content, we simply end up with images that mostly resemble the input image with little 
+difference in texture. This is similar to the failures we see in the Neural Style Transfer generations. Similarly, we believe the 
+autoencoder may have been limited in terms of how small the bottleneck layer was. Since our generator uses 64 x 64 feature maps in 
+the bottleneck layers, we did not reduce our image into a sufficiently small latent vector before decoding the generator. 
+Therefore, we simply end up learning to rearrange the original input pixels and reconstruct them later on. 
 
 ### Neural Style Transfer
+For our project, we decided to establish a baseline using vanilla neural style transfer techniques. In particular, 
+we trained an input image with an image of UW (content) and an anime background image (style) taken from the internet. Using 
+these images, we set a criteria to compare against our GAN's outputs.
+
+| Content Image | Style Image |  Result 
+| - | - | - |
+| ![content](./baseline/uw_content.jpg "content") | ![style](./baseline/my_style1.jpg "style") | ![result](./baseline/generated_image1.jpg "result") |
 
 ### Decreasing image size
-
+Another approach we took to simplify the GAN training regime was to reduce our input size to be 64x64x3 images, instead of the 
+original 256x256x3 images. We thought that by reducing the input and output size, the GAN would have a simpler time learning how 
+to reproduce smaller outputs. However, after resizing our images, we saw that they were too pixelated and that the resized images 
+did not properly represent anime-like images.
 
 Figures are good here. Maybe you present your network architecture or show some example data points?
 
@@ -100,4 +168,12 @@ You can talk about your results and the stuff you've learned here if you want. O
 ## Useful Links
 
 https://towardsdatascience.com/10-lessons-i-learned-training-generative-adversarial-networks-gans-for-a-year-c9071159628
+
+https://openaccess.thecvf.com/content_cvpr_2018/papers/Chen_CartoonGAN_Generative_Adversarial_CVPR_2018_paper.pdf
+
+https://github.com/TachibanaYoshino/AnimeGAN
+
+https://medium.com/@jakethevalencian/style-transfer-human-to-anime-faces-5464ec3ab8e
+
+https://wiki.pathmind.com/generative-adversarial-network-gan
 
