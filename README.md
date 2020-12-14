@@ -63,11 +63,11 @@ ways our project can be improved.
 
 How did you decide to solve the problem? What network architecture did you use? What data? Lots of details here about all the things you did. This section describes almost your whole project.
 Our project was heavily based off of [AnimeGAN](https://github.com/TachibanaYoshino/AnimeGAN), which is currently the state-of-the-art anime/cartoon generator (they recently released an AnimeGANv2, but did not have extensive documentation on it). We wished to reproduce their high quality results, so our implementation follows theirs for the most part. Our model is a GAN and thus consists of two convolutional neural networks: a generator to transform real-life photos to anime-like images and a discriminator to determine whether the images are real anime images or if they were produced by the generator. The architecture of these two neural networks in AnimeGAN is as follows:
-![Generator Discriminator Architecture](GenDiscArchitecture.jpg)
+![Generator Discriminator Architecture](./imgs/GenDiscArchitecture.jpg)
 
 
 The generator consists of small modules, such as convolution blocks (Conv-Block), depthwise separable convolutions (DSConv), inverted residual blocks (IRB), upsampling (Up-Conv), and downsampling (Down-Conv). The architecture of these modules can be found below:
-![Modules](Modules.jpg)
+![Modules](./imgs/Modules.jpg)
 
 ### Dataset
 The dataset we used originated from AnimeGAN. It consists of 6656 real-life photos and 1650 Shinkai-style anime images from the movie Your Name (there are other anime style images, but we focused on Shinkai). Using the anime images, we created new sets of images, such as grayscale anime images, and grayscale anime images with smoothed edges. These new images were created in order for the GAN to learn that smoothed edges should not be considered anime style. The losses below describe more in depth how these images are used.
