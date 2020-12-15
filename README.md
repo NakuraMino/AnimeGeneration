@@ -10,6 +10,7 @@ AnimeGAN and CartoonGAN.
 
 
 ### Youtube Link:
+[Link](https://youtu.be/I6hCozWtC7Q)
 
 [![Youtube Link](./baseline/generated_image1.jpg)](https://youtu.be/I6hCozWtC7Q)
 
