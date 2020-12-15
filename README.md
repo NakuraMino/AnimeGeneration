@@ -8,7 +8,11 @@ In our project, we show through our results that our GAN can learn to manipulate
 and slightly edit the stylization, but fails to replicate the the exact cartoonization of
 AnimeGAN and CartoonGAN.  
 
-VIDEO GOES HERE (probably): Record a 2-3 minute long video presenting your work. One option - take all your figures/example images/charts that you made for your website and put them in a slide deck, then record the video over zoom or some other recording platform (screen record using Quicktime on Mac OS works well). The video doesn't have to be particularly well produced or anything.
+
+### Youtube Link:
+[Link](https://youtu.be/I6hCozWtC7Q)
+
+[![Youtube Link](./baseline/generated_image1.jpg)](https://youtu.be/I6hCozWtC7Q)
 
 ## Introduction
 
