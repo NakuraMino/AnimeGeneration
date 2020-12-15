@@ -13,10 +13,6 @@ class AutoEncoder(nn.Module):
     vgg19 = models.vgg19(pretrained=True)
     self.VGG = nn.Sequential(*list(vgg19.features._modules.values()))
 
-    # residual layers 
-    self.irb1 = InverseResidualBlock(512)
-    self.irb2 = InverseResidualBlock(512)
-
     # decoder 
     self.conv1 = ConvBlock(512,512)
     self.up_conv1 = UpConv(512,256)
@@ -44,30 +40,16 @@ class AutoEncoder(nn.Module):
     x = self.VGG(x) 
     # x is [4 x 512 x 8 x 8]
 
-    x = self.irb1(x)
-    x = self.irb2(x)
-    # x is [4 x 512 x 8 x 8]
-
-    x = self.conv1(x)
     x = self.up_conv1(x)
     # x is [4 x 256 x 16 x 16]
-
-    x = self.conv2(x)
     x = self.up_conv2(x)
     # x is [4 x 128 x 32 x 32]
-
-    x = self.conv3(x)
     x = self.up_conv3(x)
     # x is [4 x 64 x 64 x 64]
-
-    x = self.conv4(x)
     x = self.up_conv4(x)
     # x is [4 x 32 x 128 x 128]
-
-    x = self.conv5(x)
     x = self.up_conv5(x)
     # x is [4 x 16 x 256 x 256]
-
     x = self.final_conv_layer(x)
     # x is [4 x 3 x 256 x 256]
 
