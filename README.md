@@ -1,4 +1,5 @@
 # AnimeGeneration
+By: Andressa Chan & Mino Nakura
 
 In this project, we tackle the problem of generating anime-like images from real-life photos. 
 We build off existing papers such as [AnimeGAN](https://github.com/TachibanaYoshino/AnimeGAN) and 
