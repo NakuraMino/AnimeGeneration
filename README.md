@@ -81,19 +81,19 @@ Both the generator and discriminator have loss functions that optimize the gener
 
 The content loss aims to have the generated image retain the content of the input image. To calculate this, we take the L1 loss of _VGG(p)_ and _VGG(G(p))_.
 Next, we have a grayscale style loss that focuses on transferring the texture of anime images onto the real-life photos. It is necessary to use grayscale images in order to eliminate color interference and to emphasize the edges and texture instead. To calculate the grayscale loss, we take the L1 loss of the Gram matrices of _VGG(p)_ and _VGG(G(p))_. 
-To counteract the grayscale style loss and ensure that the generated images retain the colors of the original photos, we also have  color reconstuction loss. To calculate this loss, we convert the RGB images to YUB format and calculate the losses for each channel and add them up. Specifically, we use an L1 loss for the Y channel and Huber Loss for the U and V channels.
+To counteract the grayscale style loss and ensure that the generated images retain the colors of the original photos, we also have  color reconstuction loss. To calculate this loss, we convert the RGB images to YUV format and calculate the losses for each channel and add them up. Specifically, we use an L1 loss for the Y channel and Huber Loss for the U and V channels.
 Finally, we have an adversarial loss to stabilize training of the network as well as to generate high quality images. The least squares loss funciton in LSGAN is used to calculate this loss.
 We use these four losses, each one scaled by a unique weight, to calculate an overall loss for the generator.
 
 
-The discriminator loss is an adversarial loss based off the descriminator's decision on four different types of images: anime images, real-life photos, grayscale anime images, and grayscale smooth-edged anime images. The discriminator should classify only the anime images as anime and the other three types as non-anime images. The grayscale smooth-edged anime images is for an edge-promoting adversarial loss to optimize the generator to produce images with clear lines, as this is a distinct style in anime. The grayscale anime images is for a grayscale adversarial loss to prevent the generated images from being grayscale. The sum of these four losses multiplied by the adversarial weight (same weight as the generator's adversarial loss) is used as the discriminator's loss.
+The discriminator loss is a mean squared error loss based off the descriminator's decision on four different types of images: anime images, real-life photos, grayscale anime images, and grayscale smooth-edged anime images. The discriminator should classify only the anime images as anime and the other three types as non-anime images. The grayscale smooth-edged anime images is for an edge-promoting adversarial loss to optimize the generator to produce images with clear lines, as this is a distinct style in anime. The grayscale anime images is for a grayscale adversarial loss to prevent the generated images from being grayscale. The sum of these four losses multiplied by the adversarial weight (same weight as the generator's adversarial loss) is used as the discriminator's loss.
 For detailed equations of each loss, more information can be found in the AnimeGAN paper.
 
 
 Throughout the process, we experimented with a variety of different implementations, which is described in the following sections. 
 
 ### Initial Implementation
-In our initial implementation, we followed the AnimeGAN architecture as closely as possible. One thing we did change was downsize the generator network by only using 4 inverted residual blocks instead of 8 due to our limited computing power and time. All other aspects of the implementation were consistent with AnimeGAN. The training regime in the AnimeGAN paper was very vague, so we used our knowledge about GANs to create a training process that seemed reasonable. This consisted of first pre-training our generator for 10 epochs on only the content loss so that the GAN would converge faster. After pre-training, we went on to train both the generator in a 5:1 ratio per epoch, meaning we trained the generator 5 times per epoch and discriminator only once. We chose to do so in order to avoid vanishing gradients, since the discriminator might learn its task of fake and true anime photos very early on. After training the network for a few epochs, we noticed that the images produced did not resemble the original input photo at all and were blob-like in nature. Since we weren't sure if our network would be able to learn anything with our current architecture and losses, we decided to make changes to our network which is described in the next few sections.   
+In our initial implementation, we followed the AnimeGAN architecture as closely as possible. One thing we did change was downsize the generator network by only using 4 inverted residual blocks instead of 8 due to our limited computing power and time. All other aspects of the implementation were consistent with AnimeGAN. The training regime in the AnimeGAN paper was very vague, so we used our knowledge about GANs to create a training process that seemed reasonable. This consisted of first pre-training our generator for 10 epochs on only the content loss so that the GAN would converge faster. After pre-training, we went on to train both the generator in a 5:1 ratio per epoch, meaning we trained the generator 5 times per epoch and discriminator only once. We chose to do so in order to avoid vanishing gradients, since the discriminator might learn its task of fake and true anime photos very early on. After training the network for a few epochs, we noticed that the images produced did not resemble the original input photo at all and were blob-like in nature. Since we weren't sure if our network would be able to learn anything with our current architecture and losses, we decided to make changes to our network which is described in the next few sections.
 
 ### Discriminator Changes
 According to the AnimeGAN paper, the discriminator was trained only using MSELoss, where anime-like photos had label=1, real-life
@@ -115,8 +115,8 @@ also ensures that the discriminator is less likely to overfit, even on a small d
 In order to solve (2), we decided to include another loss for the discriminator loss that was not introduced in the AnimeGAN 
 paper. Specifically, we hypothesized that our discriminator cannot draw a proper boundary between real-life images and anime 
 images because our dataset is too small. During our training regime, we saw that our GAN would learn to classify between anime 
-images and real-life images fairly well (MAYBE REPLACE THIS WITH SOME METRICS OR LOSS GRAPHS) after 6 or 7 epochs. However, the 
-discriminator does not draw a complete boundary between an anime photo and a real-life photo. This allows the generator to fool 
+images and real-life images fairly well after 6 or 7 epochs.
+However, the discriminator does not draw a complete boundary between an anime photo and a real-life photo. This allows the generator to fool 
 the discriminator by simplying producing altered photos of real-life photos that do not properly generate anime images. Therefore, 
 to combat this issue, we have our discriminator infrequently learn to discriminate against generated photos. Specifically, we take 
 the MSELoss(generator(images), 0) during the earlier stages of training, which helps the generator from producing images that do 
@@ -154,7 +154,7 @@ did not properly represent anime-like images.
 
 ## Results
 For our results, we present three separate types of images from three differently trained networks. First, we
-have anime image generation from neural style transfer. Second, we have outputs from training a GAN to produce anime-style images.
+have anime image generation from neural style transfer. Second, we have outputs from training our final GAN implementation.
 Lastly, we present an autoencoder that stylizes our input photos and produces anime-like photos.
 
 ### Neural Style Transfer
@@ -227,12 +227,11 @@ Overall, through this project, we learned a lot about GANs, their instability, a
 
 
 ## Useful Links
+https://github.com/TachibanaYoshino/AnimeGAN
 
 https://towardsdatascience.com/10-lessons-i-learned-training-generative-adversarial-networks-gans-for-a-year-c9071159628
 
 https://openaccess.thecvf.com/content_cvpr_2018/papers/Chen_CartoonGAN_Generative_Adversarial_CVPR_2018_paper.pdf
-
-https://github.com/TachibanaYoshino/AnimeGAN
 
 https://medium.com/@jakethevalencian/style-transfer-human-to-anime-faces-5464ec3ab8e
 
