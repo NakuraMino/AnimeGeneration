@@ -9,10 +9,9 @@ and slightly edit the stylization, but fails to replicate the the exact cartooni
 AnimeGAN and CartoonGAN.  
 
 
-### Youtube Link:
-[Link](https://youtu.be/I6hCozWtC7Q)
+### Youtube Video: [Link](https://youtu.be/I6hCozWtC7Q)
 
-[![Youtube Link](./baseline/generated_image1.jpg)](https://youtu.be/I6hCozWtC7Q)
+### Presentation Slides: [Link](https://docs.google.com/presentation/d/1yxDex6muIzjQaZuImfzMuVBSx_C7LuMb9QOoD2IAfY0/edit?usp=sharing)
 
 ## Introduction
 
@@ -130,21 +129,20 @@ generate anime-like images. More specifically, we decided to repurpose our gener
 removing the discriminator, we hoped to treat the autoencoder as a network that would map an image to a lower dimensional feature 
 vector, and then translate the feature vector into an anime-like image. 
 
-However, our experiments were not successful. Specifically, we saw that the Grayscale Style Loss used in the AnimeGAN paper did 
-not influence our autoencoder to produce anime-like images. We believe this may be because the Grayscale Style Loss is only used 
-to enhance the edges and give similar texture to anime images. However, since there is no adversarial loss to help the generator 
-learn to produce specific anime-like content, we simply end up with images that mostly resemble the input image with little 
-difference in texture. This is similar to the failures we see in the Neural Style Transfer generations. Similarly, we believe the 
-autoencoder may have been limited in terms of how small the bottleneck layer was. Since our generator uses 64 x 64 feature maps in 
-the bottleneck layers, we did not reduce our image into a sufficiently small latent vector before decoding the generator. 
-Therefore, we simply end up learning to rearrange the original input pixels and reconstruct them later on. 
+Our autoencoder architecture uses pretrained VGG19 convolutional layers as the encoder network. For the decoder network, we use 
+five convolutional layers, each followed by an upsampling block. However, our experiments were not very successful.  We believe this 
+may be because there is no adversarial loss to help the generator learn to produce specific anime-like content, we simply end up with 
+images that mostly resemble the input image with differences in texture. This is similar to the failures we see in the Neural Style 
+Transfer generations. Similarly, we believe the autoencoder may have been limited in terms of how small the bottleneck layer was. 
+Since our encoder encodes our input into 512x8x8 feature maps, our encoder may have reduced the the image without sufficient space to 
+encode all necessary features.
 
 ### Neural Style Transfer
 For our project, we decided to establish a baseline using vanilla neural style transfer techniques. In particular, 
 we trained an input image with an image of UW (content) and an anime background image (style) taken from the internet. Using 
 these images, we set a criteria to compare against our GAN's outputs.
 
-| Content Image | Style Image |  Result 
+| Content Image | Style Image | Result |
 | - | - | - |
 | ![content](./baseline/uw_content.jpg "content") | ![style](./baseline/my_style1.jpg "style") | ![result](./baseline/generated_image1.jpg "result") |
 
@@ -154,15 +152,37 @@ original 256x256x3 images. We thought that by reducing the input and output size
 to reproduce smaller outputs. However, after resizing our images, we saw that they were too pixelated and that the resized images 
 did not properly represent anime-like images.
 
-Figures are good here. Maybe you present your network architecture or show some example data points?
-
-Simgoid activation after generator? 
-
 ## Results
+For our results, we present three separate types of images from three differently trained networks. First, we
+have anime image generation from neural style transfer. Second, we have outputs from training a GAN to produce anime-style images.
+Lastly, we present an autoencoder that stylizes our input photos and produces anime-like photos.
 
-How did you evaluate your approach? How well did you do? What are you comparing to? Maybe you want ablation studies or comparisons of different methods.
+### Neural Style Transfer
+| Content Image | Style Image | Result |
+| - | - | - |
+| ![content](./baseline/uw_content.jpg "content") | ![style](./baseline/my_style2.jpg "style") | ![result](./baseline/generated_image2.jpg "result") |
 
-You may want some qualitative results and quantitative results. Example images/text/whatever are good. Charts are also good. Maybe loss curves or AUC charts. Whatever makes sense for your evaluation.
+### GANs
+| Epoch 1 | Epoch 2 | Epoch 3 | Epoch 4 |
+| :-: | :-: | :-: | :-: |
+| ![epoch1](./imgs/results/epoch1.jpg) | ![epoch2](./imgs/results/epoch2.jpg) | ![epoch3](./imgs/results/epoch3.jpg) | ![epoch4](./imgs/results/epoch4.jpg) |
+| Epoch 5 | Epoch 6 | Epoch 7 | Epoch 8 |
+| ![epoch5](./imgs/results/epoch5.jpg) | ![epoch6](./imgs/results/epoch6.jpg) | ![epoch7](./imgs/results/epoch7.jpg) | ![epoch8](./imgs/results/epoch8.jpg) |
+
+Training our GAN was extremely difficult and unstable, and we encountered common issues such as mode collapse. When passed in two different input images into our generator, it produced the same output images shown below:
+
+![mode collapse](./imgs/results/mode_collapse_e4r1idx0.jpg)
+
+### Autoencoder
+| Input Image | Result |
+| - | - |
+| ![content](./imgs/results/input.jpg) | ![result](./imgs/results/autoencoder.jpg) |
+
+### Evaluation
+Each type of model did not produce fully anime-style images. The neural style transfer result resembled the content and style images morphed together, and the content image features were warped. On the other hand, the GAN maintained the content of the image and looks somewhat painted, but it had some segmented portions, as seen by the pink hues in epoch 8. Finally, the autoencoder generated image highly resembles watercolor, with a pixelated/blurred look and muted colors. None of our approaches were able to successfully generate images that resembled anime. We did think that the autoencoder did a fairly good job with colors compared to the NST and GAN because the NST did not retain the original content image's colors (the colors were from the style image), and the GAN produced random pink segmentation masks. 
+
+To evaluate our results, we viewed the transformed images and used our prior knowledge about anime to determine whether the real-life image was successfully converted into anime style. In our opinion, the produced images did not resemble anime. As another form of metric, we asked other people if they thought the photo resembled anime and were met with unanimous disapprovals (they did say it looked cool though!). Compared to the state-of-the-art AnimeGAN and CartoonGAN, we were unable to replicate their results and high quality anime styled outputs. These incomplete results are discussed in the next section.
+
 
 ## Discussion / Learnings
 
