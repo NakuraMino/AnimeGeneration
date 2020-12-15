@@ -158,11 +158,13 @@ have anime image generation from neural style transfer. Second, we have outputs 
 Lastly, we present an autoencoder that stylizes our input photos and produces anime-like photos.
 
 ### Neural Style Transfer
+
 | Content Image | Style Image | Result |
 | - | - | - |
 | ![content](./baseline/uw_content.jpg "content") | ![style](./baseline/my_style2.jpg "style") | ![result](./baseline/generated_image2.jpg "result") |
 
 ### GANs
+
 | Epoch 1 | Epoch 2 | Epoch 3 | Epoch 4 |
 | :-: | :-: | :-: | :-: |
 | ![epoch1](./imgs/results/epoch1.jpg) | ![epoch2](./imgs/results/epoch2.jpg) | ![epoch3](./imgs/results/epoch3.jpg) | ![epoch4](./imgs/results/epoch4.jpg) |
@@ -174,6 +176,7 @@ Training our GAN was extremely difficult and unstable, and we encountered common
 ![mode collapse](./imgs/results/mode_collapse_e4r1idx0.jpg)
 
 ### Autoencoder
+
 | Input Image | Result |
 | - | - |
 | ![content](./imgs/results/input.jpg) | ![result](./imgs/results/autoencoder.jpg) |
