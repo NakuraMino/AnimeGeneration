@@ -14,6 +14,8 @@ AnimeGAN and CartoonGAN.
 
 ### Presentation Slides: [Link](https://docs.google.com/presentation/d/1yxDex6muIzjQaZuImfzMuVBSx_C7LuMb9QOoD2IAfY0/edit?usp=sharing)
 
+### Demo: [Download our colab file here!](https://github.com/NakuraMino/AnimeGeneration/blob/main/demo.ipynb)
+
 ## Introduction
 
 Anime is prevalant all over the world and plays a large role in modern day culture. Famous animes include movies such as My Neighbor Totoro, Spirited Away, Your Name as well as shows like Naruto, My Hero Academia, and Demon Slayer. These movies and shows are widely popular among people of all generations, especially the younger population. Having watched many animes and being fascinated with the graphic animations and aesthetic artwork, we always wondered how much work was put in behind the scenes. Drawing the frames in particular seems challenging and time consuming, so we thought it would be interesting to see if we could take real-life photos and convert them to anime-like images. This would save a lot of time for animators, and instead of animating from scratch, they could take these generated anime images and simply touch them up. This would especially be useful if the scenery is inspired by real-life locations, such as the movie Your Name being based off real places in Japan. This could also be a useful tool for people who want to play around and create animes but don't have the artistic ability to do so.
