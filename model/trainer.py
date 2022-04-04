@@ -14,7 +14,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class AnimeGANTrainer(LightningModule):
 
-    def __init__(self, lambda_content=0.01, lambda_gray=10, lambda_color=5, lambda_adv=100):
+    def __init__(self, lambda_content=1.5, lambda_gray=3, lambda_color=10, lambda_adv=300):
         self.generator = Generator()
         self.discriminator = Discriminator()
         self.VGG = getVGGConv4_4()

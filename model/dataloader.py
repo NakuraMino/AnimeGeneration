@@ -1,9 +1,8 @@
-import os 
+import os
 import torch
 from torch.utils.data import Dataset, DataLoader
 import numpy as np
-import cv2 
-from PIL import Image 
+import imageio
 
 """ AUXILIARY FUNCTIONS
     A lot of credit goes to Chris Xie for his code on dataloader stuff.
@@ -19,7 +18,6 @@ def standardize_images(image):
     std=[0.229, 0.224, 0.225]
     for i in range(3):
         image_standardized[...,i] = (image[...,i]/255. - mean[i]) / std[i]
-
     return image_standardized
 
 def image_to_tensor(image):
@@ -47,20 +45,18 @@ class PhotoDataset(Dataset):
         self.base_dir = base_dir
         self.all_images = os.listdir(base_dir)
         self.len = len(self.all_images)
-        self.grayscale = 0 if grayscale else 1
+        self.grayscale = "L" if grayscale else "RGB"
 
     def __len__(self):
         return self.len
 
     def __getitem__(self, idx):
         image_path = self.base_dir + self.all_images[idx]
-        image = cv2.imread(image_path, self.grayscale)
+        image = imageio.imread(image_path, pilmode=self.grayscale)
         if self.grayscale == 0:
             if len(image.shape) == 2:
                 image = np.expand_dims(image, axis=-1)
             image = np.tile(image, (1,1,3))
-        else:
-          image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image = standardize_images(image)
         image = image_to_tensor(image)
         return image
@@ -68,15 +64,6 @@ class PhotoDataset(Dataset):
 def getPhotoDataloader(base_dir, batch_size=4, num_workers=4, shuffle=True):
     dataset = PhotoDataset(base_dir)
     return DataLoader(dataset=dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, worker_init_fn=worker_init_fn)
-
-# path = './dataset/train_photo/'
-# ad = PhotoDataset(path, grayscale=False)
-# im = ad[1]
-# print(im.shape)
-
-# dl = getPhotoDataloader(path)
-# batch = next(iter(dl))
-# print(batch.shape)
 
 class PhotoAndAnimeDataset(Dataset):
     """ dataloader for photos, original anime, and smoothed anime images
@@ -127,28 +114,25 @@ class PhotoAndAnimeDataset(Dataset):
         image = None
         if idx < self.num_anime_photos:
             image_path = self.anime_original_dir + self.all_images[idx]
-            image = cv2.imread(image_path, 1) # colored
+            image = imageio.imread(image_path, pilmode='RGB') # colored
             label = torch.ones((1,64,64))
         elif idx < self.num_anime_photos + self.num_smooth_images:
             image_path = self.anime_smooth_dir + self.all_images[idx]
             label = torch.zeros((1,64,64))
-            image = cv2.imread(image_path, 0) # gray
+            image = imageio.imread(image_path, pilmode='L') # gray
         elif idx < self.num_anime_photos + self.num_smooth_images + self.num_anime_gray_images:
             image_path = self.anime_original_dir + self.all_images[idx]
             label = torch.zeros((1,64,64))
-            image = cv2.imread(image_path, 0) # gray    
+            image = imageio.imread(image_path, pilmode='L') # gray    
         else:
             image_path = self.photo_base_dir + self.all_images[idx]
             label = torch.zeros((1,64,64))
-            image = cv2.imread(image_path, 1) # colored
-        # print(image_path)
+            image = imageio.imread(image_path, pilmode='RGB') # colored
         
         # make 3 layers if its grayscaled
         if len(image.shape) == 2:
             image = np.expand_dims(image, axis=-1)
             image = np.tile(image, (1,1,3))
-        else:
-          image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
         image = standardize_images(image)
         image = image_to_tensor(image)
@@ -158,21 +142,6 @@ class PhotoAndAnimeDataset(Dataset):
 def getPhotoAndAnimeDataloader(anime_base_dir, smooth_dir, photo_base_dir, batch_size=4, num_workers=4, shuffle=True):
     dataset = PhotoAndAnimeDataset(anime_base_dir, smooth_dir, photo_base_dir)
     return DataLoader(dataset=dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, worker_init_fn=worker_init_fn)
-
-# anime_path = './dataset/Shinkai/style/'
-# smooth_path = './dataset/Shinkai/smooth/'
-# photo_path = './dataset/train_photo/'
-
-# paad = PhotoAndAnimeDataset(anime_path, smooth_path, photo_path)
-# im, label = paad[19800]
-# print(im.shape)
-# print(label)
-
-# dl = getPhotoAndAnimeDataloader(anime_path, smooth_path, photo_path, batch_size=4)
-# images, labels = next(iter(dl))
-# print(images.shape)
-# print(labels)
-
 
 class AnimeDataset(Dataset):
     """ dataloader for anime images
@@ -184,7 +153,7 @@ class AnimeDataset(Dataset):
         self.base_dir = base_dir
         self.all_images = os.listdir(base_dir)
         self.len = len(self.all_images)
-        self.grayscale = 0 if grayscale else 1
+        self.grayscale = "L" if grayscale else "RGB"
 
     def __len__(self):
         return self.len
@@ -192,15 +161,9 @@ class AnimeDataset(Dataset):
     def __getitem__(self, idx):
         image_path = self.base_dir + self.all_images[idx]
         # print(image_path)
-        image = cv2.imread(image_path, self.grayscale)
+        image = imageio.imread(image_path, pilmode=self.grayscale)
         if self.grayscale == 0:
-            # if len(image.shape) == 2:
-            #     image = np.expand_dims(image, axis=-1)
           image = np.stack([image,image,image], axis=-1)
-        #   print(image[:,:,0] - image[:,:,1])
-        #   print(image.shape)
-        else:
-          image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image = standardize_images(image)
         image = image_to_tensor(image)
         return image
@@ -208,13 +171,3 @@ class AnimeDataset(Dataset):
 def getAnimeDataloader(base_dir, batch_size=4, grayscale=False, num_workers=4, shuffle=True):
     dataset = AnimeDataset(base_dir, grayscale=grayscale)
     return DataLoader(dataset=dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, worker_init_fn=worker_init_fn)
-
-# path = './dataset/Shinkai/smooth/'
-# ad = AnimeDataset(path, grayscale=True)
-# im = ad[1]
-# print(im.shape)
-# print((im[0,:,:] - im[1,:,:]))
-
-# dl = getAnimeDataloader(path)
-# batch = next(iter(dl))
-# print(batch.shape)
