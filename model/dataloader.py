@@ -3,6 +3,8 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 import numpy as np
 import imageio
+import cv2
+import random 
 
 """ AUXILIARY FUNCTIONS
     A lot of credit goes to Chris Xie for his code on dataloader stuff.
@@ -36,138 +38,66 @@ def worker_init_fn(worker_id):
 """ DATASETS AND DATALOADERS
 """
 
-class PhotoDataset(Dataset):
-    """ dataloader for photo images only
-        no labels needed.
+class PhotoAndAnimeDataset(Dataset): 
+    """ dataloader for photos, original anime, grayscale smooth anime, and smoothed anime images
+        where labels are photos=0, original=1, smoothed=0, photos=0
     """
+    def __init__(self, anime_dir, photo_dir): 
+        self.anime_dir = anime_dir
+        self.photo_dir = photo_dir
 
-    def __init__(self, base_dir, grayscale=False):
-        self.base_dir = base_dir
-        self.all_images = os.listdir(base_dir)
-        self.len = len(self.all_images)
-        self.grayscale = "L" if grayscale else "RGB"
+        self.anime_images = os.listdir(anime_dir)
+        self.photo_images = os.listdir(photo_dir)
 
-    def __len__(self):
-        return self.len
+    def __len__(self): 
+        return max(len(self.anime_images), len(self.photo_images))
 
     def __getitem__(self, idx):
-        image_path = self.base_dir + self.all_images[idx]
-        image = imageio.imread(image_path, pilmode=self.grayscale)
-        if self.grayscale == 0:
-            if len(image.shape) == 2:
-                image = np.expand_dims(image, axis=-1)
-            image = np.tile(image, (1,1,3))
+        # retrieve data for Generator training 
+        idx = random.randrange(0, len(self.photo_images))
+        im_path = self.photo_images[idx]
+        photo = imageio.imread(im_path, pilmode='RGB')
+
+        idx = random.randrange(0, len(self.anime_images))
+        im_path = self.anime_images[idx]
+        anime = imageio.imread(im_path, pilmode='RGB')
+
+        # retrieve data for discriminator training
+        is_anime = random.randint(0,4)
+        label = None; image = None
+        if is_anime != 3: 
+            idx = random.randrange(0, len(self.anime_images))
+            im_path = self.anime_images[idx]
+            smooth_gray_original = random.randrange(0, 3)
+            if smooth_gray_original == 0: 
+                # smooth
+                image = imageio.imread(im_path, pilmode='RGB')
+                image = cv2.GaussianBlur(image, (5,5), cv2.BORDER_DEFAULT)
+                label = 0
+            elif smooth_gray_original == 1:
+                # grayscale smooth
+                image = imageio.imread(im_path, pilmode='L')
+                image = cv2.GaussianBlur(image, (5,5), cv2.BORDER_DEFAULT)
+                label = 0
+            else:
+                image = imageio.imread(im_path, pilmode='RGB')
+                label = 1
+        else: 
+            idx = random.randrange(0, len(self.anime_images))
+            im_path = self.photo_images[idx]
+            image = imageio.imread(im_path, pilmode='RGB')
+            label = 0
+
+        photo = standardize_images(photo)
+        photo = image_to_tensor(photo)
+        
         image = standardize_images(image)
         image = image_to_tensor(image)
-        return image
-        
-def getPhotoDataloader(base_dir, batch_size=4, num_workers=4, shuffle=True):
-    dataset = PhotoDataset(base_dir)
-    return DataLoader(dataset=dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, worker_init_fn=worker_init_fn)
 
-class PhotoAndAnimeDataset(Dataset):
-    """ dataloader for photos, original anime, and smoothed anime images
-        where labels are original=1, smoothed=0, photos=0
-    """
+        anime = standardize_images(anime)
+        anime = image_to_tensor(anime)
+        return {'anime': anime, 'photo': photo, 'image': image, 'label': label}
 
-    def __init__(self, anime_original_dir, anime_smooth_dir, photo_base_dir, ratio=4):
-        # first fourth is original anime images
-        self.anime_original_dir = anime_original_dir
-        self.anime_images = os.listdir(anime_original_dir)
-        self.num_anime_photos = len(self.anime_images) * 2 * ratio
-
-        # second fourth is smoothed gray anime images
-        self.anime_smooth_dir = anime_smooth_dir
-        self.anime_smooth_images = os.listdir(anime_smooth_dir)
-        self.num_smooth_images = len(self.anime_smooth_images) * (ratio - 1)
-        # print(self.num_smooth_images)
-
-        # third fourth is gray anime images
-        self.anime_gray_dir = anime_original_dir
-        self.anime_gray_images = self.anime_images.copy()
-        self.num_anime_gray_images = len(self.anime_images) 
-
-        # final third is legit photos
-        self.photo_base_dir = photo_base_dir
-        self.photo_images = os.listdir(photo_base_dir)
-
-        # append all together
-        self.all_images = self.anime_images.copy()
-        
-        for i in range((2 * ratio) - 1):
-            self.all_images.extend(self.anime_images)
-        
-        for i in range(ratio):
-            self.all_images.extend(self.anime_smooth_images)
-        
-        self.all_images.extend(self.photo_images)
-        self.len = len(self.all_images)
-
-    def __len__(self):
-        return self.len
-
-    def __getitem__(self, idx):
-        """ 1s for anime photos and 0s for real photos and smoothed photos
-        """
-        # grab image path and label
-        label = None
-        image = None
-        if idx < self.num_anime_photos:
-            image_path = self.anime_original_dir + self.all_images[idx]
-            image = imageio.imread(image_path, pilmode='RGB') # colored
-            label = torch.ones((1,64,64))
-        elif idx < self.num_anime_photos + self.num_smooth_images:
-            image_path = self.anime_smooth_dir + self.all_images[idx]
-            label = torch.zeros((1,64,64))
-            image = imageio.imread(image_path, pilmode='L') # gray
-        elif idx < self.num_anime_photos + self.num_smooth_images + self.num_anime_gray_images:
-            image_path = self.anime_original_dir + self.all_images[idx]
-            label = torch.zeros((1,64,64))
-            image = imageio.imread(image_path, pilmode='L') # gray    
-        else:
-            image_path = self.photo_base_dir + self.all_images[idx]
-            label = torch.zeros((1,64,64))
-            image = imageio.imread(image_path, pilmode='RGB') # colored
-        
-        # make 3 layers if its grayscaled
-        if len(image.shape) == 2:
-            image = np.expand_dims(image, axis=-1)
-            image = np.tile(image, (1,1,3))
-
-        image = standardize_images(image)
-        image = image_to_tensor(image)
-        
-        return image, label
-        
-def getPhotoAndAnimeDataloader(anime_base_dir, smooth_dir, photo_base_dir, batch_size=4, num_workers=4, shuffle=True):
-    dataset = PhotoAndAnimeDataset(anime_base_dir, smooth_dir, photo_base_dir)
-    return DataLoader(dataset=dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, worker_init_fn=worker_init_fn)
-
-class AnimeDataset(Dataset):
-    """ dataloader for anime images
-        Am I dumb? Is this not needed at all??
-        No labels needed.
-    """
-
-    def __init__(self, base_dir, grayscale=False):
-        self.base_dir = base_dir
-        self.all_images = os.listdir(base_dir)
-        self.len = len(self.all_images)
-        self.grayscale = "L" if grayscale else "RGB"
-
-    def __len__(self):
-        return self.len
-
-    def __getitem__(self, idx):
-        image_path = self.base_dir + self.all_images[idx]
-        # print(image_path)
-        image = imageio.imread(image_path, pilmode=self.grayscale)
-        if self.grayscale == 0:
-          image = np.stack([image,image,image], axis=-1)
-        image = standardize_images(image)
-        image = image_to_tensor(image)
-        return image
-        
-def getAnimeDataloader(base_dir, batch_size=4, grayscale=False, num_workers=4, shuffle=True):
-    dataset = AnimeDataset(base_dir, grayscale=grayscale)
+def getPhotoAndAnimeDataloader(anime_dir, photo_dir, batch_size=4, num_workers=4, shuffle=True):
+    dataset = PhotoAndAnimeDataset(anime_dir, photo_dir)
     return DataLoader(dataset=dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, worker_init_fn=worker_init_fn)

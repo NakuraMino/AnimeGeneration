@@ -31,11 +31,23 @@ class AnimeGANTrainer(LightningModule):
         self.color_recon_loss = ColorReconLoss()
         self.adversarial_loss = nn.MSELoss()
 
-    def training_step(self, batch, batch_idx, optimizer_idx):
-        photos = batch['photos']
-        anime = batch['anime']
+        # GAN training hack
+        self.epoch = -1
 
-        if optimizer_idx == 0:
+        # Important: This property activates manual optimization.
+        self.automatic_optimization = False
+
+    def training_step(self, batch, batch_idx):
+        if batch_idx == 0: 
+            self.epoch += 1
+        photos = batch['photo']
+        anime = batch['anime']
+        images = batch['image']
+        labels = batch['label']
+
+        g_opt, d_opt = self.optimizers()
+
+        if self.epoch % 5 != 4:
             # train generator
             gen_images = self.generator(photos)
             pred_labels = self.discriminator(gen_images)
@@ -47,30 +59,70 @@ class AnimeGANTrainer(LightningModule):
             adv_loss = self.adversarial_loss(pred_labels, fake_labels)
 
             loss = self.l_con * con_loss + self.l_gray * gray_loss + self.l_color * color_loss + self.l_adv * adv_loss
+
             self.log('train/generator_loss', loss, batch_size=4)
             self.log('train/con_loss', con_loss, batch_size=4)
             self.log('train/gray_loss', gray_loss, batch_size=4)
             self.log('train/color_loss', color_loss, batch_size=4)
             self.log('train/adv_loss', adv_loss, batch_size=4)
 
+            # manual backpropagation
+            g_opt.zero_grad()
+            self.manual_backward(loss)
+            g_opt.step()
+
             return loss
-        elif optimizer_idx == 1:
+        else:
             # train discriminator
-            gen_images = self.generator(photos)
-            pred_gen_labels = self.discriminator(gen_images)
-            gen_labels = torch.zeros(pred_gen_labels.shape, device=device)
-            gen_adv_loss = self.adversarial_loss(gen_labels, pred_gen_labels)
-
-            pred_anime_labels = self.discriminator(anime)
-            anime_labels = torch.ones(pred_anime_labels.shape, device=device)
-            anime_adv_loss = self.adversarial_loss(anime_labels, pred_anime_labels)
-
-            loss = gen_adv_loss + anime_adv_loss
+            pred_labels = self.discriminator(images)
+            loss = self.adversarial_loss(labels, pred_labels)
 
             self.log('train/discriminator_loss', loss, batch_size=4)
-            self.log('train/gen_adv_loss', gen_adv_loss, batch_size=4)
-            self.log('train/anime_adv_loss', anime_adv_loss, batch_size=4)
+            
+            # manual backpropagation 
+            d_opt.zero_grad()
+            self.manual_backward(loss)
+            d_opt.step()
+
             return loss
+
+    def validation_step(self, batch, batch_idx):
+        if batch_idx == 0: 
+            self.epoch += 1
+        photos = batch['photo']
+        anime = batch['anime']
+        images = batch['image']
+        labels = batch['label']
+
+        # train generator
+        gen_images = self.generator(photos)
+        pred_labels = self.discriminator(gen_images)
+        fake_labels = torch.ones(pred_labels.shape, device=device)
+
+        con_loss = self.content_loss(gen_images, photos)
+        gray_loss = self.grayscale_loss(gen_images, anime)
+        color_loss = self.color_recon_loss(gen_images, photos)
+        adv_loss = self.adversarial_loss(pred_labels, fake_labels)
+
+        loss = self.l_con * con_loss + self.l_gray * gray_loss + self.l_color * color_loss + self.l_adv * adv_loss
+
+        self.log('train/generator_loss', loss, batch_size=4)
+        self.log('train/con_loss', con_loss, batch_size=4)
+        self.log('train/gray_loss', gray_loss, batch_size=4)
+        self.log('train/color_loss', color_loss, batch_size=4)
+        self.log('train/adv_loss', adv_loss, batch_size=4)
+        
+        # train discriminator
+        pred_labels = self.discriminator(images)
+        loss = self.adversarial_loss(labels, pred_labels)
+
+        self.log('train/discriminator_loss', loss, batch_size=4)
+
+        if batch_idx == 0:
+            gen_images = utils.torch_to_numpy(gen_images, is_standardized_image=True)
+            N, H, W, C = gen_images.shape
+            self.logger.log_image(key='generated', images=[gen_images[i] for i in range(N)], caption=[f'val/{i}.png' for i in range(N)])
+        return loss
 
 
     def configure_optimizers(self):
