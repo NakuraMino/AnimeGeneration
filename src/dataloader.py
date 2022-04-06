@@ -72,19 +72,20 @@ class PhotoAndAnimeDataset(Dataset):
             if smooth_gray_original == 0: 
                 # smooth
                 image = imageio.imread(f'{self.anime_dir}/smooth/{im_path}', pilmode='RGB')
-                label = 0
+                label = torch.zeros((1,64,64))
             elif smooth_gray_original == 1:
                 # grayscale smooth
                 image = imageio.imread(f'{self.anime_dir}/smooth/{im_path}', pilmode='L')
-                label = 0
+                image = np.stack([image, image, image], axis=-1)
+                label = torch.zeros((1,64,64))
             else:
                 image = imageio.imread(f'{self.anime_dir}/style/{im_path}', pilmode='RGB')
-                label = 1
+                label = torch.ones((1,64,64))
         else: 
             idx = random.randrange(0, len(self.anime_images))
             im_path = self.photo_images[idx]
             image = imageio.imread(f'{self.photo_dir}/{im_path}', pilmode='RGB')
-            label = 0
+            label = torch.zeros((1,64,64))
 
         photo = standardize_images(photo)
         photo = image_to_tensor(photo)
