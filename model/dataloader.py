@@ -3,7 +3,6 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 import numpy as np
 import imageio
-import cv2
 import random 
 
 """ AUXILIARY FUNCTIONS
@@ -46,7 +45,8 @@ class PhotoAndAnimeDataset(Dataset):
         self.anime_dir = anime_dir
         self.photo_dir = photo_dir
 
-        self.anime_images = os.listdir(anime_dir)
+        self.smooth_images = os.listdir(f'{anime_dir}/smooth/')
+        self.anime_images = os.listdir(f'{anime_dir}/style/')
         self.photo_images = os.listdir(photo_dir)
 
     def __len__(self): 
@@ -56,11 +56,11 @@ class PhotoAndAnimeDataset(Dataset):
         # retrieve data for Generator training 
         idx = random.randrange(0, len(self.photo_images))
         im_path = self.photo_images[idx]
-        photo = imageio.imread(im_path, pilmode='RGB')
+        photo = imageio.imread(f'{self.photo_dir}/{im_path}', pilmode='RGB')
 
         idx = random.randrange(0, len(self.anime_images))
         im_path = self.anime_images[idx]
-        anime = imageio.imread(im_path, pilmode='RGB')
+        anime = imageio.imread(f'{self.anime_dir}/style/{im_path}', pilmode='RGB')
 
         # retrieve data for discriminator training
         is_anime = random.randint(0,4)
@@ -71,21 +71,19 @@ class PhotoAndAnimeDataset(Dataset):
             smooth_gray_original = random.randrange(0, 3)
             if smooth_gray_original == 0: 
                 # smooth
-                image = imageio.imread(im_path, pilmode='RGB')
-                image = cv2.GaussianBlur(image, (5,5), cv2.BORDER_DEFAULT)
+                image = imageio.imread(f'{self.anime_dir}/smooth/{im_path}', pilmode='RGB')
                 label = 0
             elif smooth_gray_original == 1:
                 # grayscale smooth
-                image = imageio.imread(im_path, pilmode='L')
-                image = cv2.GaussianBlur(image, (5,5), cv2.BORDER_DEFAULT)
+                image = imageio.imread(f'{self.anime_dir}/smooth/{im_path}', pilmode='L')
                 label = 0
             else:
-                image = imageio.imread(im_path, pilmode='RGB')
+                image = imageio.imread(f'{self.anime_dir}/style/{im_path}', pilmode='RGB')
                 label = 1
         else: 
             idx = random.randrange(0, len(self.anime_images))
             im_path = self.photo_images[idx]
-            image = imageio.imread(im_path, pilmode='RGB')
+            image = imageio.imread(f'{self.photo_dir}/{im_path}', pilmode='RGB')
             label = 0
 
         photo = standardize_images(photo)

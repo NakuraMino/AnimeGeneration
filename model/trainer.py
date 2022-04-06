@@ -1,13 +1,12 @@
 import torch 
 import torch.nn as nn
 import torch.nn.functional as F
-from pytotrch_lightning import LightningModule
+from pytorch_lightning import LightningModule
 
 from discriminator import *
 from losses import *
 from generator import *
 import utilities as utils
-import random
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -15,6 +14,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 class AnimeGANTrainer(LightningModule):
 
     def __init__(self, lambda_content=1.5, lambda_gray=3, lambda_color=10, lambda_adv=300):
+        super(AnimeGANTrainer, self).__init__()
         self.generator = Generator()
         self.discriminator = Discriminator()
         self.VGG = getVGGConv4_4()
