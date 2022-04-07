@@ -87,8 +87,6 @@ class AnimeGANTrainer(LightningModule):
             return loss
 
     def validation_step(self, batch, batch_idx):
-        if batch_idx == 0: 
-            self.epoch += 1
         photos = batch['photo']
         anime = batch['anime']
         images = batch['image']
@@ -106,17 +104,17 @@ class AnimeGANTrainer(LightningModule):
 
         loss = self.l_con * con_loss + self.l_gray * gray_loss + self.l_color * color_loss + self.l_adv * adv_loss
 
-        self.log('train/generator_loss', loss, batch_size=4)
-        self.log('train/con_loss', con_loss, batch_size=4)
-        self.log('train/gray_loss', gray_loss, batch_size=4)
-        self.log('train/color_loss', color_loss, batch_size=4)
-        self.log('train/adv_loss', adv_loss, batch_size=4)
+        self.log('val/generator_loss', loss, batch_size=4)
+        self.log('val/con_loss', con_loss, batch_size=4)
+        self.log('val/gray_loss', gray_loss, batch_size=4)
+        self.log('val/color_loss', color_loss, batch_size=4)
+        self.log('val/adv_loss', adv_loss, batch_size=4)
         
         # train discriminator
         pred_labels = self.discriminator(images)
         loss = self.adversarial_loss(labels, pred_labels)
 
-        self.log('train/discriminator_loss', loss, batch_size=4)
+        self.log('val/discriminator_loss', loss, batch_size=4)
 
         if batch_idx == 0:
             gen_images = utils.torch_to_numpy(gen_images, is_standardized_image=True)
